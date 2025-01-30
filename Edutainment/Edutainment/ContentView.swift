@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct GameView: View {
+	@Environment(\.dismiss) private var dismiss
+	@State private var isShowingPopover = false
+
 	@State var examples: [String] = []
 	@State var rootExample: String?
 	@State var rightAnswer: Int?
@@ -18,7 +21,7 @@ struct GameView: View {
 	@State var score: Int = 0
 
 	var body: some View {
-		VStack {
+		VStack(alignment: .center) {
 			Text(rootExample ?? "")
 			TextField("Solution", value: $answer, format: .number)
 				.keyboardType(.decimalPad)
@@ -29,13 +32,14 @@ struct GameView: View {
 					answer = nil
 					setNewLevel()
 				}
+				.padding()
+				.frame(width: 250)
 			Text("Score: \(score)/\(numberOfQuestions)")
-				.font(.largeTitle)
 			Spacer()
 			HStack {
 				Spacer()
 				Button("New Game") {
-
+					dismiss()
 				}
 				.frame(width: 150, height: 150)
 				.background(.red)
@@ -45,9 +49,31 @@ struct GameView: View {
 				Spacer()
 			}
 		}
+		.font(.largeTitle)
 		.onAppear() {
 			assignTheValue()
 		}
+		.popover(
+			isPresented: $isShowingPopover, arrowEdge: .bottom
+		) {
+			VStack {
+				Text("Game Over")
+					.padding()
+				Text("Your score is \(score)/\(numberOfQuestions)")
+				Button("New game") {
+					dismiss()
+				}
+					.frame(width: 150, height: 100)
+					.background(.red)
+					.clipShape(.rect)
+					.cornerRadius(20)
+					.foregroundStyle(.white)
+			}
+			.font(.largeTitle)
+			.presentationBackground(.yellow)
+
+		}
+		.background(Color.yellow)
 	}
 
 	func validateAnswer() -> Bool {
@@ -59,13 +85,7 @@ struct GameView: View {
 		examples.removeFirst()
 		assignTheValue()
 		if examples.isEmpty {
-			examples = []
-			rootExample = nil
-			rightAnswer = nil
-			answer = nil
-			score = 0
-			print("Game over")
-			// TODO add an alert or something
+			isShowingPopover = true
 		}
 	}
 
@@ -75,7 +95,7 @@ struct GameView: View {
 			return
 		}
 
-		rootExample = firstExample.components(separatedBy: "=").first ?? "2 x 0"
+		rootExample = firstExample.components(separatedBy: "=").first ?? "13 x 0"
 		rightAnswer = Int(firstExample.components(separatedBy: " ").last ?? "0")
 	}
 }
@@ -98,6 +118,7 @@ struct ContentView: View {
     var body: some View {
 		NavigationStack {
 			VStack {
+				Spacer()
 				Form {
 					Picker("Levels of table up to:", selection: $tableLevel) {
 						ForEach(2..<13) {
@@ -115,6 +136,7 @@ struct ContentView: View {
 					}
 
 				}
+				.scrollContentBackground(.hidden)
 				VStack {
 					Button("New Game") {
 												examples = []
@@ -130,10 +152,14 @@ struct ContentView: View {
 					.clipShape(.circle)
 					.foregroundStyle(.white)
 				}
+
 			}
 			.navigationDestination(isPresented: $isShoingGameView) {
 				GameView(examples: examples, rootExample: rootExample, rightAnswer: rightAnswer, numberOfQuestions: numberOfQuestions)
+					.navigationBarBackButtonHidden(true)
 			}
+			.background(Color.yellow)
+			.navigationTitle("Settings")
 		}
 		.onAppear() {
 			launchApp()
